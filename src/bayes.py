@@ -6,15 +6,12 @@ import numpy as np
 def read_training_emails(path):
     emails = []
     labels = []
-    for folder in os.listdir(path):
-        if folder == ".DS_Store" or folder == "part10":
-            continue
-        for filename in os.listdir(os.path.join(path, folder)):
-            if filename.endswith("txt"):
-                file_path = os.path.join(path, folder, filename)
-                with open(file_path) as f:
-                    emails.append(f.read())
-                    labels.append(1 if "spm" in filename else 0)
+    for filename in os.listdir(path):
+        if filename.endswith("txt"):
+            file_path = os.path.join(path, filename)
+            with open(file_path) as f:
+                emails.append(f.read())
+                labels.append(1 if "spm" in filename else 0)
     return emails, labels
 
 
@@ -30,8 +27,8 @@ def read_test_emails(path):
     return emails, labels
 
 
-mails, labels = read_training_emails("input/bare")
-test_mails, test_labels = read_test_emails("input/bare/part10")
+mails, labels = read_training_emails("input/lemm_stop/train")
+test_mails, test_labels = read_test_emails("input/lemm_stop/test")
 # print("Total emails:", len(mails))
 # print("Spam emails:", len([label for label in labels if label == 1]))
 
@@ -56,14 +53,6 @@ def extract_vocabulary_and_word_counts(emails, labels):
             for token in tokenize(email):
                 count_word_is_not_spam[token] += 1
     return vocabulary, count_word_is_spam, count_word_is_not_spam
-
-
-# def remove_less_frequent_words():
-#     new_vocab = set()
-#     for token in vocabulary:
-#         if count_word_is_spam[token] + count_word_is_not_spam[token] >= 2:
-#             new_vocab.add(token)
-#     return new_vocab
 
 
 vocabulary, count_word_is_spam, count_word_is_not_spam = extract_vocabulary_and_word_counts(
@@ -91,7 +80,7 @@ def vectorize_mails(emails):
 vectors = vectorize_mails(mails)
 
 
-def calculate_conditional_probabilities():
+def calculate_conditional_probabilities(vocabulary):
     # prima linie e pt not spam, a doua pt spam
     conditional_probabilities = np.zeros((2, len(vocabulary)))
     for token in vocabulary:
@@ -110,8 +99,15 @@ def calculate_class_probabilities():
     return p_not_spam, p_spam
 
 
+def extract_most_important_words(email):
+    # sort the word by their frequency in the count_word_is_spam and count_word_is_not_spam
+    # and return the first 50 words
+    words = tokenize(email)
+    return " ".join([word for word in sorted(words, key=lambda word: count_word_is_spam[word] + count_word_is_not_spam[word], reverse=True)[:min(50, len(words))]])
+
+
 p_spam, p_not_spam = calculate_class_probabilities()
-conditional_probabilities = calculate_conditional_probabilities()
+conditional_probabilities = calculate_conditional_probabilities(vocabulary)
 
 
 def classify_1(email):
@@ -124,11 +120,11 @@ def classify_1(email):
             p_spam_given_email += np.log(conditional_probabilities[1, index])
             p_not_spam_given_email += np.log(
                 conditional_probabilities[0, index])
-        # else:
-        #     p_spam_given_email += np.log(1 -
-        #                                  conditional_probabilities[1, index])
-        #     p_not_spam_given_email += np.log(1 -
-        #                                      conditional_probabilities[0, index])
+        else:
+            p_spam_given_email += np.log(abs(1 -
+                                         conditional_probabilities[1, index]))
+            p_not_spam_given_email += np.log(abs(1 -
+                                             conditional_probabilities[0, index]))
     return 1 if p_spam_given_email > p_not_spam_given_email else 0
 
 
@@ -140,4 +136,14 @@ def calculate_accuracy():
     return correct / len(test_mails)
 
 
-print("Accuracy:", calculate_accuracy())
+print("Accuracy:", calculate_accuracy() * 100)
+
+
+def print_to_file_sorted_words_and_appearence_count():
+    with open("wordsc.txt", "w") as f:
+        for word in sorted(vocabulary, key=lambda word: count_word_is_spam[word] + count_word_is_not_spam[word], reverse=True):
+            f.write(
+                f"{word} {count_word_is_spam[word] + count_word_is_not_spam[word]}\n")
+
+
+print_to_file_sorted_words_and_appearence_count()

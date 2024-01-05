@@ -11,18 +11,17 @@ ham_emails = 0
 
 total_number_of_ham_words = 0
 total_number_of_spam_words = 0
-p_spam = 0
-p_ham = 0
 
 
 def tokenize(text: str):
     return text.lower().split(" ")
 
 
-def apply_laplace():
+def apply_laplace(trained_words):
     for word in trained_words:
         trained_words[word][0] += 1
         trained_words[word][1] += 1
+    return trained_words
 
 
 def sort():
@@ -84,20 +83,23 @@ def print_in_wordsc(to_write):
         f.write(to_write)
 
 
-def calculate_total_number_of_words():
-    global total_number_of_ham_words, total_number_of_spam_words
+def calculate_total_number_of_words(trained_words):
+    total_number_of_ham_words = 0
+    total_number_of_spam_words = 0
     for word in trained_words:
         total_number_of_spam_words += trained_words[word][0]  # spam
         total_number_of_ham_words += trained_words[word][1]  # ham
+    return total_number_of_ham_words, total_number_of_spam_words
 
 
-def compute_conditional_probs():
+def compute_conditional_probs(trained_words, total_number_of_ham_words, total_number_of_spam_words):
     for word in trained_words:
         trained_words[word][0] /= total_number_of_spam_words
         trained_words[word][1] /= total_number_of_ham_words
+    return trained_words
 
 
-def classify_email(email):
+def classify_email(email, trained_words, p_spam, p_ham):
     words = tokenize(email)
     p_spam_given_email = np.log(p_spam)
     p_ham_given_email = np.log(p_ham)
@@ -111,10 +113,10 @@ def classify_email(email):
         return 0
 
 
-def calculate_accuracy():
+def calculate_accuracy(test_emails, trained_words, p_spam, p_ham):
     correct = 0
     for email in test_emails:
-        if classify_email(email) == test_emails[email]:
+        if classify_email(email,trained_words,p_spam,p_ham) == test_emails[email]:
             correct += 1
     return correct / len(test_emails)
 
@@ -124,36 +126,40 @@ path = "input/lemm_stop/"
 read_training_emails(path + "train")
 
 # sort()
-apply_laplace()
-calculate_total_number_of_words()
+trained_words = apply_laplace(trained_words)
+total_number_of_ham_words, total_number_of_spam_words = calculate_total_number_of_words(
+    trained_words)
 
 p_ham = ham_emails / (ham_emails + spam_emails)
 p_spam = spam_emails / (ham_emails + spam_emails)
-compute_conditional_probs()
+trained_words = compute_conditional_probs(
+    trained_words, total_number_of_ham_words, total_number_of_spam_words)
 
 print_in_wordsc(str(trained_words))
 
 # testing
 read_test_emails(path + "test")
 
-print(f"Accuracy: {calculate_accuracy() * 100:.2f}")
+print(f"Accuracy: {calculate_accuracy(
+    test_emails, trained_words, p_spam, p_ham) * 100:.2f}")
 
 
 def cross_leave_one_out(path):
     correct = 0
-    trained_words = {}
-    test_emails = {}
-    train_emails = {}
-    spam_emails = 0
-    ham_emails = 0
-
-    total_number_of_ham_words = 0
-    total_number_of_spam_words = 0
-    p_spam = 0
-    p_ham = 0
 
     for email_to_skip in train_emails.keys():
+
+        trained_words = {}
+        test_emails = {}
+        train_emails = {}
+        spam_emails = 0
+        ham_emails = 0
+
+        total_number_of_ham_words = 0
+        total_number_of_spam_words = 0
+        p_spam = 0
+        p_ham = 0
+
         for email in train_emails.keys():
             if email != email_to_skip:
-                if classify_email(email) == train_emails[email]:
-                    correct += 1
+                

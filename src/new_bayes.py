@@ -7,8 +7,6 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.feature_extraction.text import CountVectorizer
 import matplotlib.pyplot as plt
 
-# ce ar trebui sa fac bro?
-
 train_emails = {}
 trained_words = {}
 test_emails = {}
@@ -257,17 +255,7 @@ accuracies = {
     'CVLOO Custom Naive Bayes': cvloo_accuracy * 100
 }
 
-# PUNE LA INCEPUT FARA CVLOO cauta
 
-# Visualizatio
-# plt.bar(range(len(accuracies)), list(accuracies.values()), align='center')
-# plt.xticks(range(len(accuracies)), list(
-#     accuracies.keys()), rotation='vertical')
-# plt.yticks(np.arange(0, 101, 5))
-# plt.grid(axis='y', linestyle='-', alpha=0.7)
-# plt.ylabel('Accuracy (%)')
-# plt.title('Accuracies for dataset ' + dataset_name)
-# plt.show()
 bars = plt.bar(range(len(accuracies)), list(
     accuracies.values()), align='center', color='skyblue')
 plt.xticks(range(len(accuracies)), list(
